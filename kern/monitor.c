@@ -33,6 +33,7 @@ static struct Command commands[] = {
 int
 mon_help(int argc, char **argv, struct Trapframe *tf)
 {
+	cprintf("%x\n",UPAGES);
 	int i;
 
 	for (i = 0; i < NCOMMANDS; i++)
