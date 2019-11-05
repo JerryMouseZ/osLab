@@ -10,6 +10,7 @@
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
+#include <kern/pmap.h>
 
 #define CMDBUF_SIZE 80 // enough for one VGA text line
 
@@ -26,6 +27,9 @@ static struct Command commands[] = {
 	{"help", "Display this list of commands or one of the command", "help\nhelp <command>", mon_help},
 	{"kerninfo", "Display information about the kernel", "kerninfo", mon_kerninfo},
 	{"backtrace", "Display backtrace info", "backtrace", mon_backtrace},
+	{"showmappings", "Display the permission of the vaddr between begin and end", "showmappings <begin> <end>", mon_showmapping},
+	{"setperm", "set the permission of the virtual address bewteen begin and end",
+	 "setperm <begin> <end> <perm>", mon_setPrivilege},
 };
 #define NCOMMANDS (sizeof(commands) / sizeof(commands[0]))
 
@@ -40,11 +44,16 @@ int mon_help(int argc, char **argv, struct Trapframe *tf)
 		for (i = 0; i < NCOMMANDS; i++)
 			cprintf("%s - %s - usage:\n%s\n", commands[i].name, commands[i].desc, commands[i].usage);
 	}
-	else if(argc==2){
-		cprintf("%s - %s - %s\n", commands[1].name, commands[1].desc, commands[1].usage);
+	else if (argc == 2)
+	{
+		int i;
+		for (i = 0; i < NCOMMANDS; i++)
+			if (!strcmp(commands[i].name, argv[1]))
+				cprintf("%s - %s - usage:\n%s\n", commands[i].name, commands[i].desc, commands[i].usage);
 	}
-	else{
-		cprintf("help usage:\n%s\n",commands[0].usage);
+	else
+	{
+		cprintf("help usage:\n%s\n", commands[0].usage);
 	}
 	return 0;
 }
@@ -102,13 +111,87 @@ int mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+int mon_showmapping(int argc, char **argv, struct Trapframe *tf)
+{
+	if (argc == 3)
+	{
+		uint32_t begin, end;
+		// 将begin,end 4k 对齐
+		char *endptr;
+		begin = ROUNDDOWN((uint32_t)strtol(argv[1], &endptr, 0), PGSIZE);
+		end = ROUNDUP((uint32_t)strtol(argv[2], &endptr, 0), PGSIZE);
+		for (; begin < end; begin += PGSIZE)
+		{
+			struct PageInfo *pg;
+			// 拿到PTE的低12位
+			pte_t *pte;
+			pte = pgdir_walk(kern_pgdir, (void *)begin, 0);
+			pg = page_lookup(kern_pgdir, (void *)begin, 0);
+			if (!pte || !(*pte & PTE_P))
+			{
+				cprintf("0x%x - 0x%x not mapping \n", begin, begin + PGSIZE);
+			}
+			else
+			{
+				cprintf("0x%x - 0x%x\t Phy Addr: %x\treference: %d\n", begin, begin + PGSIZE, page2pa(pg), pg->pp_ref);
+				cprintf("0x%x - 0x%x user state: %d\twritable: %d\tpresent: %d\n", begin, begin + PGSIZE, (bool)(*pte & PTE_U), (bool)(*pte & PTE_W), (bool)(*pte & PTE_P));
+			}
+		}
+	}
+	else
+	{
+		cprintf("showmapping usage:\n%s\n", commands[3].usage);
+	}
+	return 0;
+}
+
+int mon_setPrivilege(int argc, char **argv, struct Trapframe *tf)
+{
+	if (argc == 4)
+	{
+		uint32_t begin, end;
+		int perm;
+		// 将begin,end 4k 对齐
+		char *endptr;
+		begin = ROUNDDOWN((uint32_t)strtol(argv[1], &endptr, 0), PGSIZE);
+		end = ROUNDUP((uint32_t)strtol(argv[2], &endptr, 0), PGSIZE);
+		perm = (int)strtol(argv[3], &endptr, 0);
+		cprintf("%d\n", perm);
+		if (perm <= 0 || perm > 0xfff)
+		{
+			cprintf("plese input a number between 1 and 0xfff\n");
+			return 0;
+		}
+		for (; begin < end; begin += PGSIZE)
+		{
+			struct PageInfo *pg;
+			// 拿到PTE的低12位
+			pte_t *pte;
+			pte = pgdir_walk(kern_pgdir, (void *)begin, 1);
+			if (!pte || !(*pte & PTE_P))
+			{
+				cprintf("memory out! \n");
+				return -1;
+			}
+			else
+			{
+				*pte = (*pte & 0xfffff000) | perm;
+				cprintf("0x%x - 0x%x perm: %d\n", begin, begin + PGSIZE, *pte & 0xfff);
+			}
+		}
+	}
+	else
+	{
+		cprintf("setperm usage:\n setperm <begin> <end> <perm>");
+	}
+	return 0;
+}
 /***** Kernel monitor command interpreter *****/
 
 #define WHITESPACE "\t\r\n "
 #define MAXARGS 16
 
-static int
-runcmd(char *buf, struct Trapframe *tf)
+static int runcmd(char *buf, struct Trapframe *tf)
 {
 	int argc;
 	char *argv[MAXARGS];

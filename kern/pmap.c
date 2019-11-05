@@ -84,6 +84,7 @@ static void *boot_alloc(uint32_t n)
 	if (!nextfree)
 	{
 		extern char end[];
+		cprintf("end location %x\n", end);
 		nextfree = ROUNDUP((char *)end, PGSIZE);
 	}
 	// Allocate a chunk large enough to hold 'n' bytes, then update
@@ -142,7 +143,7 @@ void mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-	// 初始化页面信息。用于追踪虚拟内存
+	// 初始化页面信息。
 	pages = (struct PageInfo *)boot_alloc(npages * sizeof(struct PageInfo));
 	memset(pages, 0, npages * sizeof(struct PageInfo));
 	//////////////////////////////////////////////////////////////////////
