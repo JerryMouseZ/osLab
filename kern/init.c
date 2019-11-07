@@ -11,9 +11,7 @@
 #include <kern/env.h>
 #include <kern/trap.h>
 
-
-void
-i386_init(void)
+void i386_init(void)
 {
 	extern char edata[], end[];
 
@@ -27,6 +25,8 @@ i386_init(void)
 	cons_init();
 
 	cprintf("6828 decimal is %o octal!\n", 6828);
+	int x = 1, y = 3, z = 4;
+	cprintf("x %d, y %x, z %d\n", x, y, z);
 
 	// Lab 2 memory management initialization functions
 	mem_init();
@@ -47,7 +47,6 @@ i386_init(void)
 	env_run(&envs[0]);
 }
 
-
 /*
  * Variable panicstr contains argument to first call to panic; used as flag
  * to indicate that the kernel has already called panic.
@@ -58,8 +57,7 @@ const char *panicstr;
  * Panic is called on unresolvable fatal errors.
  * It prints "panic: mesg", and then enters the kernel monitor.
  */
-void
-_panic(const char *file, int line, const char *fmt,...)
+void _panic(const char *file, int line, const char *fmt, ...)
 {
 	va_list ap;
 
@@ -83,8 +81,7 @@ dead:
 }
 
 /* like panic, but don't */
-void
-_warn(const char *file, int line, const char *fmt,...)
+void _warn(const char *file, int line, const char *fmt, ...)
 {
 	va_list ap;
 
