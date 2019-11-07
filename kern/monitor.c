@@ -30,6 +30,7 @@ static struct Command commands[] = {
 	{"showmappings", "Display the permission of the vaddr between begin and end", "showmappings <begin> <end>", mon_showmapping},
 	{"setperm", "set the permission of the virtual address bewteen begin and end",
 	 "setperm <begin> <end> <perm>", mon_setPrivilege},
+	{"dump", "Display the contents between begin and end", "dump -p/-v <begin> <end>", mon_dump},
 };
 #define NCOMMANDS (sizeof(commands) / sizeof(commands[0]))
 
@@ -156,10 +157,9 @@ int mon_setPrivilege(int argc, char **argv, struct Trapframe *tf)
 		begin = ROUNDDOWN((uint32_t)strtol(argv[1], &endptr, 0), PGSIZE);
 		end = ROUNDUP((uint32_t)strtol(argv[2], &endptr, 0), PGSIZE);
 		perm = (int)strtol(argv[3], &endptr, 0);
-		cprintf("%d\n", perm);
-		if (perm <= 0 || perm > 0xfff)
+		if (perm < 0 || perm > 0xfff)
 		{
-			cprintf("plese input a number between 1 and 0xfff\n");
+			cprintf("plese input a number between 0 and 0xfff\n");
 			return 0;
 		}
 		for (; begin < end; begin += PGSIZE)
@@ -167,22 +167,78 @@ int mon_setPrivilege(int argc, char **argv, struct Trapframe *tf)
 			struct PageInfo *pg;
 			// 拿到PTE的低12位
 			pte_t *pte;
-			pte = pgdir_walk(kern_pgdir, (void *)begin, 1);
+			pte = pgdir_walk(kern_pgdir, (void *)begin, 0);
 			if (!pte || !(*pte & PTE_P))
 			{
-				cprintf("memory out! \n");
-				return -1;
+				return 0;
 			}
 			else
 			{
-				*pte = (*pte & 0xfffff000) | perm;
-				cprintf("0x%x - 0x%x perm: %d\n", begin, begin + PGSIZE, *pte & 0xfff);
+				if (!perm & PTE_P)
+				{
+					page_remove(kern_pgdir, (void *)begin);
+				}
+				else
+				{
+					*pte = (*pte & 0xfffff000) | perm;
+					cprintf("0x%x - 0x%x perm: %d\n", begin, begin + PGSIZE, *pte & 0xfff);
+				}
 			}
 		}
 	}
 	else
 	{
 		cprintf("setperm usage:\n setperm <begin> <end> <perm>");
+	}
+	return 0;
+}
+
+int mon_dump(int argc, char **argv, struct Trapframe *tf)
+{
+	if (argc == 4)
+	{
+		uint32_t begin, end;
+		char *endptr;
+		if (*argv[1] == '-')
+		{
+			if (argv[1][1] == 'p') //dump -p addr (physical)
+			{
+				begin = (uint32_t)KADDR(strtol(argv[2], &endptr, 0));
+				end = (uint32_t)KADDR(strtol(argv[3], &endptr, 0));
+				cprintf("physical address\tcontent\n");
+			}
+			else if (argv[1][1] == 'v') //dump -v addr (virtual)
+			{
+
+				begin = (uint32_t)strtol(argv[2], &endptr, 0);
+				end = (uint32_t)strtol(argv[3], &endptr, 0);
+				cprintf("virtual address\tcontent\n");
+			}
+			else
+			{
+				cprintf("dump usage:\n dump -p/-v <begin> <end>\n");
+				return 1;
+			}
+
+			for (; begin < end; begin += 4)
+			{
+				cprintf("0x%08x\t", begin);
+				struct PageInfo *pg;
+				pg = page_lookup(kern_pgdir, (void *)ROUNDDOWN(begin, PGSIZE), 0);
+				if (pg == NULL)
+				{
+					cprintf("No Mapping\n");
+					begin += PGSIZE - begin % PGSIZE;
+					continue;
+				}
+				cprintf("%d\n", *(uint32_t *)begin);
+			}
+		}
+	}
+	else
+	{
+		cprintf("dump usage:\n dump -p/-v <begin> <end>\n");
+		return 1;
 	}
 	return 0;
 }
