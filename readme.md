@@ -208,23 +208,23 @@ int mon_dump(int argc, char **argv, struct Trapframe *tf)
 
 ## 演示
 
-![image-20191109183528428](/home/jz/.config/Typora/typora-user-images/image-20191109183528428.png)
+![image-20191109213416690](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213416690.png)
 
 先是查看所有指令的用法
 
-![image-20191109183638518](/home/jz/.config/Typora/typora-user-images/image-20191109183638518.png)
+![image-20191109213430353](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213430353.png)
 
 然后查看0xef000000 - 0xef008000 之间的页面信息和权限 U W P位
 
-![image-20191109183835703](/home/jz/.config/Typora/typora-user-images/image-20191109183835703.png)
+![image-20191109213450971](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213450971.png)
 
 给刚刚的地址范围设置页面权限为0，再查看发现这些页面都失效了。
 
-![image-20191109184055400](/home/jz/.config/Typora/typora-user-images/image-20191109184055400.png)
+![image-20191109213511414](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213511414.png)
 
 用dump查看虚拟地址的信息。
 
-![image-20191109184214048](/home/jz/.config/Typora/typora-user-images/image-20191109184214048.png)
+![image-20191109213521326](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213521326.png)
 
 查看物理地址信息。
 
@@ -754,7 +754,7 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 <img src="C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109122110678.png" alt="image-20191109122110678" style="zoom:80%;" />
 
-### 问题 2. 
+### 问题2. 
 
 假设下图描述的是系统的页目录表，哪些条目（行）已经被填充了？它们是怎么样进行地址映射的？它们所指向的位置在哪里？请尽可能完善这张表的内容。
 
@@ -783,7 +783,7 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 3C0~3FF号页目录项，指向的是kernel
 
-### 问题 3：
+### 问题3：
 
 我们已经将内核和用户环境放在同一地址空间内。为什么用户的程序不能读取内核的内存？有什么具体的机制保护内核空间吗？
 
@@ -1039,7 +1039,7 @@ x =（mystery_t）value;
 | 1         | 0x00400000               | ?                                      |
 | 0         | 0x00000000               | [see next question]                    |
 
-### 问题3.
+### 问题 3.
 
 **我们已经将内核和用户环境放在同一地址空间内。为什么用户的程序不能读取内核的内存？有什么具体的机制保护内核空间吗？**
    	用户程序不能去随意修改内核中的代码，数据，否则可能会破坏内核，造成程序崩溃。
@@ -1054,14 +1054,14 @@ x =（mystery_t）value;
 
  
 
-### 问题5.
+### 问题 5.
 
 **如果我们的硬件配置了可以支持的最大的物理内存，那么管理内存空间的开销是多少？这一开销是怎样划分的？**
   	首先需要存放所有的PageInfo，需要4MB，需要存放页目录表kern_pgdir，4KB，还需要存放当前的页表，大小为2MB。所以总的开销就是6MB + 4KB。
 
  
 
-### 问题6.
+### 问题 6.
 
 **再次分析 kern/entry.S 和 kern/entrypgdir.c 的页表设置的过程，在打开分页之后，EIP 依然是一个数字（稍微超过 1MB）。在什么时刻我们才开始在 KERNBASE 上运行 EIP 的？当我们启动分页并在 KERNBASE 上开始运行 EIP 之时，我们能否以低地址的 EIP 继续执行？这个过渡为什么是必须要的？**
 	  entry.S的注释中如下写到:`Jump up above KERNBASE before entering。`
