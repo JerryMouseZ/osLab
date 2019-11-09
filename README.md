@@ -208,7 +208,7 @@ int mon_dump(int argc, char **argv, struct Trapframe *tf)
 
 ## 演示
 
-![image-20191109221237605](image-20191109221237605.png)
+![assert/image-20191109221237605](image-20191109221237605.png)
 
 先是查看所有指令的用法
 
