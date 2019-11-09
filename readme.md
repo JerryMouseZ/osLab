@@ -208,23 +208,23 @@ int mon_dump(int argc, char **argv, struct Trapframe *tf)
 
 ## 演示
 
-![image-20191109213416690](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213416690.png)
+![image-20191109220243270](image-20191109220243270.png)
 
 先是查看所有指令的用法
 
-![image-20191109213430353](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213430353.png)
+![image-20191109220306784](image-20191109220306784.png)
 
 然后查看0xef000000 - 0xef008000 之间的页面信息和权限 U W P位
 
-![image-20191109213450971](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213450971.png)
+![image-20191109220321416](image-20191109220321416.png)
 
 给刚刚的地址范围设置页面权限为0，再查看发现这些页面都失效了。
 
-![image-20191109213511414](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213511414.png)
+![image-20191109220335026](image-20191109220335026.png)
 
 用dump查看虚拟地址的信息。
 
-![image-20191109213521326](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109213521326.png)
+![image-20191109220346809](image-20191109220346809.png)
 
 查看物理地址信息。
 
@@ -250,7 +250,7 @@ boot_alloc()
 
 以及在内存建立过程中，即页表初始化之前内存的分配。
 
-![image-20191109120727069](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109120727069.png)
+![image-20191109220404522](image-20191109220404522.png)
 
 这里可以看出bss段是在整个程序的最后的，因为最后的comment注释是不会写入内存的。那么end指向bss段的末尾，即整个内存的最后一个地址。bss段存放的是未被初始化的全局变量，属于静态内存分配。然后找到向PGSIZE对其的下一个地址即可
 
@@ -472,7 +472,7 @@ JOS 内核有时还需要能够根据虚拟地址找到相应的物理地址。�
 
 ## 练习 4. 
 
-<img src="C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109121515384.png" alt="image-20191109121515384" style="zoom:80%;" />
+![image-20191109220434556](image-20191109220434556.png)
 
 在文件 `kern/pmap.c` 中，实现以下函数的代码。
 
@@ -618,7 +618,7 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 虚拟内存结构
 
-![image-20191109121942220](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109121942220.png)
+![image-20191109220502055](image-20191109220502055.png)
 
 ```c
 /*
@@ -750,9 +750,7 @@ int page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 物理地址结构：
 
-<img src="C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109122059355.png" alt="image-20191109122059355" style="zoom:80%;" />
-
-<img src="C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109122110678.png" alt="image-20191109122110678" style="zoom:80%;" />
+![image-20191109220527080](image-20191109220527080.png)
 
 ### 问题2. 
 
@@ -865,11 +863,11 @@ jmp *％eax完成之后。 能，是因为entry_pgdir还将va [0，4M）映射�
 
   **2**；最后make grade的时候老报错，问了一下学长
 
-![image-20191109122447976](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109122447976.png)
+![image-20191109220610400](image-20191109220610400.png)
 
 把GUNmakefile里的-Werror删掉，不把警告当报错处理
 
-![image-20191109122512716](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109122512716.png)
+![image-20191109220620872](image-20191109220620872.png)
 
 ## 练习1：
 
@@ -939,7 +937,7 @@ page_insert(),把一个物理内存中页与虚拟地址建立映射关系。
 
 最后make grade 70分
 
-![image-20191109122854805](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109122854805.png)
+![image-20191109220640740](image-20191109220640740.png)
 
 
 
@@ -1070,4 +1068,4 @@ x =（mystery_t）value;
 
 makegrade结果：
 
-![image-20191109122959835](C:\Users\88450\AppData\Roaming\Typora\typora-user-images\image-20191109122959835.png)
+![image-20191109220658361](image-20191109220658361.png)
