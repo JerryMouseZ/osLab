@@ -116,7 +116,7 @@ void env_init(void)
 	// Set up envs array
 	// LAB 3: Your code here.
 	env_free_list = NULL;
-	size_t i;
+	int i;
 	for (i = NENV - 1; i >= 0; i--)
 	{
 		// memset 已经置0了，因此不用再写那些置0的操作
@@ -270,7 +270,6 @@ static void
 region_alloc(struct Env *e, void *va, size_t len)
 {
 	// LAB 3: Your code here.
-	size_t i = 0;
 	struct PageInfo *p;
 	void *begin = ROUNDDOWN(va, PGSIZE);
 	void *end = ROUNDUP(va + len, PGSIZE);
@@ -279,7 +278,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 		p = page_alloc(0);
 		if (!p)
 			panic("page fault!\n");
-		if (!page_insert(e->env_pgdir, p, begin, PTE_U | PTE_W))
+		if (page_insert(e->env_pgdir, p, begin, PTE_U | PTE_W))
 			panic("page insert failed!\n");
 		begin += PGSIZE;
 	}
