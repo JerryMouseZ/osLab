@@ -164,8 +164,25 @@ static void
 cga_putc(int c)
 {
 	// if no attribute given, then use black on white
-	if (!(c & ~0xFF))
-		c |= 0x0700;
+	char ch = c & 0xff; //高位清零
+	if (ch >= '0' && ch <= '9') // 数字绿色
+	{
+		c |= 0x0200;
+	}
+	else if (ch >= 'A' && ch <= 'Z') //大写深蓝色
+	{
+		c |= 0x0100;
+	}
+	else if (ch >= 'a' && ch <= 'z') //小写浅蓝色
+	{
+		c |= 0x0300;
+		// c |= 255*65536;
+	}
+	else
+	{
+		c |= 0x0700; //默认黑色
+	}
+
 
 	switch (c & 0xff) {
 	case '\b':
