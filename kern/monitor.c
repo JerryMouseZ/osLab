@@ -32,6 +32,8 @@ static struct Command commands[] = {
 	{"setperm", "set the permission of the virtual address bewteen begin and end",
 	 "setperm <begin> <end> <perm>", mon_setPrivilege},
 	{"dump", "Display the contents between begin and end", "dump -p/-v <begin> <end>", mon_dump},
+	{"stepi", "step", "stedpi", mon_stepi},
+	{"continue", "continue", "continue", mon_continue},
 };
 #define NCOMMANDS (sizeof(commands) / sizeof(commands[0]))
 
@@ -299,10 +301,36 @@ void monitor(struct Trapframe *tf)
 	if (tf != NULL)
 		print_trapframe(tf);
 
-	while (1) {
+	while (1)
+	{
 		buf = readline("K> ");
 		if (buf != NULL)
 			if (runcmd(buf, tf) < 0)
 				break;
 	}
+}
+
+int mon_continue(int argc, char **argv, struct Trapframe *tf)
+{
+	//关于EFLAGS寄存器的部分，发现了一个位：Trap Bit.
+	//如果这个位被设置位1，那么每次执行一条指令，都会自动触发一次Debug Exception.
+	if (tf == NULL)
+	{
+		cprintf("No Env is Running! This is Not a Debug Monitor!\n");
+		return 0;
+	}
+	// Because we want the program to continue running; clear the TF bit
+	tf->tf_eflags &= ~(FL_TF);
+	return -1;
+}
+int mon_stepi(int argc, char **argv, struct Trapframe *tf)
+{
+	if (tf == NULL)
+	{
+		cprintf("No Env is Running! This is Not a Debug Monitor!\n");
+		return 0;
+	}
+	// Because we want the program to single step, set the TF bit
+	tf->tf_eflags |= (FL_TF);
+	return -1;
 }

@@ -523,5 +523,5 @@ void env_run(struct Env *e)
 	lcr3(PADDR(e->env_pgdir));
 	env_pop_tf(&(e->env_tf));
 	e->env_type = ENV_TYPE_USER;
-	panic("env_run not yet implemented");
+	// panic("env_run not yet implemented");
 }
