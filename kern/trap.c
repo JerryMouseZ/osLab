@@ -60,23 +60,6 @@ void trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-	void th0();
-	void th1();
-	void th2();
-	void th3();
-	void th4();
-	void th5();
-	void th6();
-	void th7();
-	void th8();
-	void th9();
-	void th10();
-	void th11();
-	void th12();
-	void th13();
-	void th14();
-	void th16();
-	void th_syscall();
 	SETGATE(idt[0], 0, GD_KT, th0, 0); //格式如下：SETGATE(gate, istrap, sel, off, dpl)，定义在inc/mmu.h中
 	SETGATE(idt[1], 0, GD_KT, th1, 3); //设置idt[1]，段选择子为内核代码段，段内偏移为th1
 	// 把debug 3 NMI 0 BREAKPOINT的设为3
