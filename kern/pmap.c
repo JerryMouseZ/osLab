@@ -86,7 +86,6 @@ static void *boot_alloc(uint32_t n)
 	if (!nextfree)
 	{
 		extern char end[];
-		cprintf("end location %x\n", end);
 		nextfree = ROUNDUP((char *)end, PGSIZE);
 	}
 	// Allocate a chunk large enough to hold 'n' bytes, then update
@@ -126,7 +125,6 @@ void mem_init(void)
 	// create initial page directory.
 	// kern_pgdir = end 这个怎么似乎是一个物理地址呀
 	kern_pgdir = (pde_t *)boot_alloc(PGSIZE);
-	cprintf("pgdir %x\n", kern_pgdir);
 	memset(kern_pgdir, 0, PGSIZE);
 
 	//////////////////////////////////////////////////////////////////////
@@ -197,7 +195,6 @@ void mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
-	cprintf("0x%x \n", KSTACKTOP - KSTKSIZE);
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -259,7 +256,6 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
 }
 
 // --------------------------------------------------------------
@@ -301,11 +297,18 @@ void page_init(void)
 	//1
 	pages[0].pp_ref = 1;
 	pages[0].pp_link = NULL;
+	extern unsigned char mpentry_start[], mpentry_end[];
+	size_t mp_len = ROUNDUP(mpentry_end - mpentry_start, PGSIZE);
 	for (i = 1; i < npages; i++)
 	{
 		// 2
 		/*page_init()中，通过page_free_list这个全局中间变量，把后一个页面的pp_link指向前一个页面,于是这里就把所有的pages都链接起来了*/
-		if (i < npages_basemem)
+		if (i >= MPENTRY_PADDR / PGSIZE && i <= (MPENTRY_PADDR + mp_len) / PGSIZE)
+		{
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		}
+		else if (i < npages_basemem)
 		{
 			pages[i].pp_ref = 0;
 			pages[i].pp_link = page_free_list;
@@ -324,6 +327,7 @@ void page_init(void)
 			pages[i].pp_ref = 1;
 			pages[i].pp_link = NULL;
 		}
+
 		else
 		{
 			pages[i].pp_ref = 0;
@@ -602,7 +606,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	void * ret = (void*)base;
+	physaddr_t begin = ROUNDUP(pa, PGSIZE);
+	size = ROUNDUP(pa + size, PGSIZE) - (size_t)begin;
+	if (begin + size > MMIOLIM)
+		panic("mmio_map_region reservation overflow\n");
+	boot_map_region(kern_pgdir, base, size, begin, PTE_PCD | PTE_PWT);
+	// panic("mmio_map_region not implemented");
+	base += size;
+	return ret;
 }
 
 static uintptr_t user_mem_check_addr;
@@ -717,7 +729,7 @@ check_page_free_list(bool only_low_memory)
 		assert(page2pa(pp) != IOPHYSMEM);
 		assert(page2pa(pp) != EXTPHYSMEM - PGSIZE);
 		assert(page2pa(pp) != EXTPHYSMEM);
-		assert(page2pa(pp) < EXTPHYSMEM || (char *) page2kva(pp) >= first_free_page);
+		assert(page2pa(pp) < EXTPHYSMEM || (char *)page2kva(pp) >= first_free_page);
 		// (new test for lab 4)
 		assert(page2pa(pp) != MPENTRY_PADDR);
 
@@ -729,6 +741,7 @@ check_page_free_list(bool only_low_memory)
 
 	assert(nfree_basemem > 0);
 	assert(nfree_extmem > 0);
+	cprintf("check_page_free_list() succeeded!\n");
 }
 
 //
@@ -841,11 +854,11 @@ check_kern_pgdir(void)
 
 	// check kernel stack
 	// (updated in lab 4 to check per-CPU kernel stacks)
-	for (n = 0; n < NCPU; n++) {
+	for (n = 0; n < NCPU; n++)
+	{
 		uint32_t base = KSTACKTOP - (KSTKSIZE + KSTKGAP) * (n + 1);
 		for (i = 0; i < KSTKSIZE; i += PGSIZE)
-			assert(check_va2pa(pgdir, base + KSTKGAP + i)
-				== PADDR(percpu_kstacks[n]) + i);
+			assert(check_va2pa(pgdir, base + KSTKGAP + i) == PADDR(percpu_kstacks[n]) + i);
 		for (i = 0; i < KSTKGAP; i += PGSIZE)
 			assert(check_va2pa(pgdir, base + i) == ~0);
 	}
@@ -1047,8 +1060,8 @@ check_page(void)
 	page_free(pp2);
 
 	// test mmio_map_region
-	mm1 = (uintptr_t) mmio_map_region(0, 4097);
-	mm2 = (uintptr_t) mmio_map_region(0, 4096);
+	mm1 = (uintptr_t)mmio_map_region(0, 4097);
+	mm2 = (uintptr_t)mmio_map_region(0, 4096);
 	// check that they're in the right region
 	assert(mm1 >= MMIOBASE && mm1 + 8096 < MMIOLIM);
 	assert(mm2 >= MMIOBASE && mm2 + 8096 < MMIOLIM);
@@ -1058,16 +1071,16 @@ check_page(void)
 	assert(mm1 + 8096 <= mm2);
 	// check page mappings
 	assert(check_va2pa(kern_pgdir, mm1) == 0);
-	assert(check_va2pa(kern_pgdir, mm1+PGSIZE) == PGSIZE);
+	assert(check_va2pa(kern_pgdir, mm1 + PGSIZE) == PGSIZE);
 	assert(check_va2pa(kern_pgdir, mm2) == 0);
-	assert(check_va2pa(kern_pgdir, mm2+PGSIZE) == ~0);
+	assert(check_va2pa(kern_pgdir, mm2 + PGSIZE) == ~0);
 	// check permissions
-	assert(*pgdir_walk(kern_pgdir, (void*) mm1, 0) & (PTE_W|PTE_PWT|PTE_PCD));
-	assert(!(*pgdir_walk(kern_pgdir, (void*) mm1, 0) & PTE_U));
+	assert(*pgdir_walk(kern_pgdir, (void *)mm1, 0) & (PTE_W | PTE_PWT | PTE_PCD));
+	assert(!(*pgdir_walk(kern_pgdir, (void *)mm1, 0) & PTE_U));
 	// clear the mappings
-	*pgdir_walk(kern_pgdir, (void*) mm1, 0) = 0;
-	*pgdir_walk(kern_pgdir, (void*) mm1 + PGSIZE, 0) = 0;
-	*pgdir_walk(kern_pgdir, (void*) mm2, 0) = 0;
+	*pgdir_walk(kern_pgdir, (void *)mm1, 0) = 0;
+	*pgdir_walk(kern_pgdir, (void *)mm1 + PGSIZE, 0) = 0;
+	*pgdir_walk(kern_pgdir, (void *)mm2, 0) = 0;
 
 	cprintf("check_page() succeeded!\n");
 }
