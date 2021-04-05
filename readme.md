@@ -461,8 +461,4 @@ static struct Command commands[] = {
 
 ## **Make grade  !**
 
-<<<<<<< HEAD
   ![image-20191122175000231](assert/image-20191122175000231.png)
-=======
-  ![image-20191122175000231](assert/image-20191122175000231.png)
->>>>>>> f5968cd589556c89bc60216c9634a5b45a943843
